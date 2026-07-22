@@ -744,6 +744,17 @@
 
 <div id="toast"></div>
 
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box">
+    <h3>Confirmar exclusão</h3>
+    <p id="confirmModalText">Tem certeza que deseja excluir este item?</p>
+    <div class="modal-actions">
+      <button class="btn ghost small" id="btnConfirmNo">Cancelar</button>
+      <button class="btn danger small" id="btnConfirmYes">Excluir</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="resetModal">
   <div class="modal-box">
     <h3>Confirmar reset mensal</h3>
@@ -806,6 +817,29 @@ function toast(msg) {
   el.textContent = msg;
   wrap.appendChild(el);
   setTimeout(() => el.remove(), 3200);
+}
+
+function confirmAction(message) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('confirmModal');
+    document.getElementById('confirmModalText').textContent = message;
+    overlay.classList.add('show');
+
+    const yesBtn = document.getElementById('btnConfirmYes');
+    const noBtn = document.getElementById('btnConfirmNo');
+
+    function cleanup(result) {
+      overlay.classList.remove('show');
+      yesBtn.removeEventListener('click', onYes);
+      noBtn.removeEventListener('click', onNo);
+      resolve(result);
+    }
+    function onYes() { cleanup(true); }
+    function onNo() { cleanup(false); }
+
+    yesBtn.addEventListener('click', onYes);
+    noBtn.addEventListener('click', onNo);
+  });
 }
 
 function setConn(status) {
@@ -967,6 +1001,8 @@ document.getElementById('btnAddAbastecimento').addEventListener('click', async (
 document.getElementById('listaCombustivel').addEventListener('click', async (e) => {
   const id = e.target.dataset.del;
   if (!id) return;
+  const ok = await confirmAction('Tem certeza que deseja excluir este abastecimento?');
+  if (!ok) return;
   state.combustivel.abastecimentos = state.combustivel.abastecimentos.filter(a => a.id !== id);
   await persist({ combustivel: state.combustivel });
   renderCombustivel(); renderResumo();
@@ -1016,6 +1052,8 @@ document.getElementById('btnAddSaldo').addEventListener('click', async () => {
 document.getElementById('listaSaldo').addEventListener('click', async (e) => {
   const id = e.target.dataset.del;
   if (!id) return;
+  const ok = await confirmAction('Tem certeza que deseja excluir este lançamento de saldo?');
+  if (!ok) return;
   state.saldoConta = state.saldoConta.filter(a => a.id !== id);
   await persist({ saldoConta: state.saldoConta });
   renderSaldo(); renderResumo();
@@ -1073,6 +1111,8 @@ document.getElementById('listaVariaveis').addEventListener('click', async (e) =>
   const delId = e.target.dataset.del;
   const toggleId = e.target.dataset.toggle;
   if (delId) {
+    const ok = await confirmAction('Tem certeza que deseja excluir esta despesa variável?');
+    if (!ok) return;
     state.despesasVariaveis = state.despesasVariaveis.filter(a => a.id !== delId);
     await persist({ despesasVariaveis: state.despesasVariaveis });
     renderVariaveis(); renderResumo();
@@ -1154,6 +1194,8 @@ document.getElementById('listaFixas').addEventListener('click', async (e) => {
   const upId = e.target.dataset.moveUp;
   const downId = e.target.dataset.moveDown;
   if (delId) {
+    const ok = await confirmAction('Tem certeza que deseja excluir esta despesa fixa?');
+    if (!ok) return;
     state.despesasFixas = state.despesasFixas.filter(a => a.id !== delId);
     await persist({ despesasFixas: state.despesasFixas });
     renderFixas(); renderResumo();
@@ -1358,6 +1400,8 @@ document.getElementById('listaHistorico').addEventListener('click', async (e) =>
   const delId = e.target.dataset.delHist;
   if (delId) {
     e.stopPropagation();
+    const ok = await confirmAction('Tem certeza que deseja excluir este mês do histórico? Essa informação não poderá ser recuperada.');
+    if (!ok) return;
     state.historico = state.historico.filter(h => h.id !== delId);
     await persist({ historico: state.historico });
     renderHistorico();
