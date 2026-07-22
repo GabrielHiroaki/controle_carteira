@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carteira — Controle Financeiro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#10151a;
+    --bg-alt:#0b0f13;
+    --panel:#1a2129;
+    --panel-alt:#212a33;
+    --line:rgba(236,232,225,0.09);
+    --line-strong:rgba(236,232,225,0.16);
+    --text:#ece8e1;
+    --text-dim:#93a0ab;
+    --text-faint:#5f6b75;
+    --green:#4fb783;
+    --green-dim:#345c48;
+    --gold:#cda349;
+    --red:#d97b6c;
+    --red-dim:#5c3831;
+    --radius:10px;
+    --shadow: 0 8px 30px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 90% -10%, rgba(79,183,131,0.06), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(205,163,73,0.05), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  ::selection{background:var(--green-dim);color:#fff;}
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--panel-alt);border-radius:6px;}
+
+  .app{
+    display:flex;
+    min-height:100vh;
+    max-width:1400px;
+    margin:0 auto;
+  }
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    width:270px;
+    flex-shrink:0;
+    background:linear-gradient(180deg, var(--bg-alt), #0d1216);
+    border-right:1px solid var(--line);
+    padding:28px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+    position:sticky;
+    top:0;
+    height:100vh;
+  }
+  .brand{
+    padding:0 6px;
+  }
+  .brand .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--gold);
+  }
+  .brand h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:26px;
+    margin:4px 0 0;
+    line-height:1.15;
+  }
+  .brand .sub{
+    color:var(--text-faint);
+    font-size:12.5px;
+    margin-top:6px;
+  }
+
+  nav.tabs{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    flex:1;
+    overflow-y:auto;
+  }
+  .tab-btn{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:11px 12px;
+    border-radius:8px;
+    background:transparent;
+    border:1px solid transparent;
+    color:var(--text-dim);
+    cursor:pointer;
+    text-align:left;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .tab-btn .idx{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--text-faint);
+    width:18px;
+    flex-shrink:0;
+  }
+  .tab-btn:hover{background:var(--panel);color:var(--text);}
+  .tab-btn.active{
+    background:var(--panel-alt);
+    border-color:var(--line-strong);
+    color:var(--text);
+  }
+  .tab-btn.active .idx{color:var(--green);}
+
+  .sidebar-foot{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    border-top:1px solid var(--line);
+    padding-top:16px;
+  }
+  .conn-status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:11.5px;
+    color:var(--text-faint);
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--text-faint);flex-shrink:0;}
+  .dot.on{background:var(--green);box-shadow:0 0 6px var(--green);}
+  .dot.err{background:var(--red);box-shadow:0 0 6px var(--red);}
+
+  .btn-reset{
+    background:transparent;
+    border:1px solid var(--red-dim);
+    color:var(--red);
+    padding:10px 12px;
+    border-radius:8px;
+    font-family:'Inter',sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .btn-reset:hover{background:rgba(217,123,108,0.1);}
+
+  /* ---------- CONTENT ---------- */
+  .content{
+    flex:1;
+    padding:36px 44px 80px;
+    min-width:0;
+  }
+  .tab-panel{display:none;animation:fade .25s ease;}
+  .tab-panel.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  .panel-head{
+    margin-bottom:28px;
+    padding-bottom:18px;
+    border-bottom:1px solid var(--line);
+  }
+  .panel-head .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--gold);
+  }
+  .panel-head h2{
+    font-family:'Fraunces',serif;
+    font-size:30px;
+    font-weight:600;
+    margin:4px 0 6px;
+  }
+  .panel-head p{
+    color:var(--text-dim);
+    font-size:14px;
+    max-width:640px;
+    margin:0;
+  }
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:22px;
+  }
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  @media(max-width:760px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--text-dim);
+    margin-bottom:6px;
+    font-weight:500;
+  }
+  input[type=text],input[type=number],input[type=date],textarea,select{
+    width:100%;
+    background:var(--bg-alt);
+    border:1px solid var(--line-strong);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:7px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:14px;
+    outline:none;
+    transition:border-color .15s ease;
+  }
+  input[type=text]:not(.mono), textarea.text{
+    font-family:'Inter',sans-serif;
+  }
+  input:focus,textarea:focus,select:focus{border-color:var(--green);}
+  .field{margin-bottom:16px;}
+  .field:last-child{margin-bottom:0;}
+
+  .btn{
+    background:var(--green);
+    color:#0b1410;
+    border:none;
+    padding:11px 20px;
+    border-radius:7px;
+    font-weight:700;
+    font-size:13.5px;
+    cursor:pointer;
+    transition:filter .15s ease, transform .1s ease;
+  }
+  .btn:hover{filter:brightness(1.08);}
+  .btn:active{transform:scale(.98);}
+  .btn.ghost{
+    background:transparent;
+    border:1px solid var(--line-strong);
+    color:var(--text);
+  }
+  .btn.ghost:hover{background:var(--panel-alt);}
+  .btn.small{padding:7px 12px;font-size:12px;}
+  .btn.danger{background:var(--red);color:#2a0f0a;}
+
+  .result-box{
+    margin-top:20px;
+    background:linear-gradient(135deg, rgba(79,183,131,0.10), rgba(79,183,131,0.02));
+    border:1px solid var(--green-dim);
+    border-radius:var(--radius);
+    padding:22px;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .result-box .lbl{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+  }
+  .result-box .val{
+    font-family:'Fraunces',serif;
+    font-size:34px;
+    font-weight:600;
+    color:var(--green);
+  }
+  .formula-note{
+    margin-top:14px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--text-faint);
+    line-height:1.6;
+  }
+
+  /* progress / gauge */
+  .gauge-wrap{display:flex;gap:26px;flex-wrap:wrap;margin-bottom:22px;}
+  .gauge-card{
+    flex:1;min-width:200px;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px;
+  }
+  .gauge-card .lbl{font-size:11.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;}
+  .gauge-card .val{font-family:'Fraunces',serif;font-size:28px;margin-top:4px;}
+  .gauge-card.green .val{color:var(--green);}
+  .gauge-card.red .val{color:var(--red);}
+  .gauge-card.gold .val{color:var(--gold);}
+  .bar-track{
+    margin-top:14px;height:8px;border-radius:5px;background:var(--bg-alt);overflow:hidden;border:1px solid var(--line);
+  }
+  .bar-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--gold));transition:width .3s ease;}
+  .bar-fill.over{background:linear-gradient(90deg,var(--red),#a83f30);}
+
+  /* list rows */
+  .list{display:flex;flex-direction:column;gap:10px;margin-top:18px;}
+  .row-item{
+    background:var(--bg-alt);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:12px 14px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .row-item input,.row-item select{
+    background:transparent;
+    border:1px solid transparent;
+    padding:6px 8px;
+    border-radius:6px;
+  }
+  .row-item input:hover,.row-item select:hover{border-color:var(--line-strong);}
+  .row-item .grow{flex:1;min-width:120px;}
+  .row-item .val-input{width:130px;flex:0 0 auto;}
+  .row-item .date-input{width:150px;flex:0 0 auto;}
+  .tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    padding:5px 10px;
+    border-radius:20px;
+    cursor:pointer;
+    user-select:none;
+    border:1px solid transparent;
+    flex-shrink:0;
+  }
+  .tag.credito{background:rgba(79,183,131,0.15);color:var(--green);border-color:var(--green-dim);}
+  .tag.despesa{background:rgba(217,123,108,0.15);color:var(--red);border-color:var(--red-dim);}
+  .due-day{display:flex;align-items:center;gap:7px;flex-shrink:0;font-size:12px;color:var(--text-dim);}
+  .due-day .due-lbl{white-space:nowrap;}
+  .chk-wrap{display:flex;align-items:center;gap:7px;flex-shrink:0;font-size:12px;color:var(--text-dim);}
+  .chk-wrap input[type=checkbox]{width:16px;height:16px;accent-color:var(--green);cursor:pointer;}
+  .order-controls{display:flex;flex-direction:column;gap:2px;flex-shrink:0;}
+  .icon-btn.small-icon{width:22px;height:16px;font-size:9px;border-radius:4px;}
+  .icon-btn.small-icon:disabled{opacity:.25;cursor:not-allowed;}
+  .icon-btn.small-icon:disabled:hover{color:var(--text-faint);border-color:var(--line-strong);}
+  .icon-btn{
+    background:transparent;border:1px solid var(--line-strong);color:var(--text-faint);
+    width:30px;height:30px;border-radius:6px;cursor:pointer;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:15px;
+    transition:color .15s ease,border-color .15s ease;
+  }
+  .icon-btn:hover{color:var(--red);border-color:var(--red-dim);}
+  .empty-hint{
+    color:var(--text-faint);
+    font-size:13px;
+    padding:20px;
+    text-align:center;
+    border:1px dashed var(--line-strong);
+    border-radius:8px;
+    margin-top:16px;
+  }
+  .add-row{
+    display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;padding-top:18px;border-top:1px solid var(--line);
+  }
+  .add-row input,.add-row select{flex:1;min-width:130px;}
+
+  /* summary */
+  .summary-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;}
+  @media(max-width:900px){.summary-grid{grid-template-columns:1fr;}}
+  .ledger{display:flex;flex-direction:column;}
+  .ledger-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:13px 4px;border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .ledger-row:last-child{border-bottom:none;}
+  .ledger-row .l{color:var(--text-dim);}
+  .ledger-row .v{font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  .v.pos{color:var(--green);}
+  .v.neg{color:var(--red);}
+  .ledger-row.total{
+    margin-top:6px;padding-top:16px;border-top:1px solid var(--line-strong);border-bottom:none;
+  }
+  .ledger-row.total .l{color:var(--text);font-weight:600;font-family:'Fraunces',serif;font-size:16px;}
+  .ledger-row.total .v{font-size:22px;}
+  .ledger-row.sub{padding-left:16px;font-size:12.5px;}
+  .ledger-row.sub .l{color:var(--text-faint);}
+
+  textarea#anotacoesText{
+    width:100%;min-height:420px;resize:vertical;
+    font-family:'IBM Plex Mono',monospace;font-size:13.5px;line-height:1.7;
+    padding:18px;
+  }
+  .save-indicator{
+    font-size:11.5px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;margin-top:8px;
+    height:16px;
+  }
+
+  #toast{
+    position:fixed;bottom:24px;right:24px;
+    display:flex;flex-direction:column;gap:8px;z-index:999;
+  }
+  .toast-item{
+    background:var(--panel-alt);border:1px solid var(--line-strong);
+    color:var(--text);padding:12px 16px;border-radius:8px;
+    font-size:13px;box-shadow:var(--shadow);
+    animation:slidein .2s ease;
+  }
+  @keyframes slidein{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,0.6);
+    display:none;align-items:center;justify-content:center;z-index:1000;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal-box{
+    background:var(--panel);border:1px solid var(--line-strong);border-radius:var(--radius);
+    padding:26px;max-width:400px;box-shadow:var(--shadow);
+  }
+  .modal-box h3{font-family:'Fraunces',serif;margin:0 0 10px;font-size:20px;}
+  .modal-box p{color:var(--text-dim);font-size:13.5px;line-height:1.6;margin:0 0 20px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+
+  .note-fixed{
+    display:flex;align-items:flex-start;gap:8px;
+    background:rgba(205,163,73,0.08);border:1px solid rgba(205,163,73,0.25);
+    border-radius:8px;padding:12px 14px;margin-bottom:20px;
+    font-size:12.5px;color:var(--text-dim);line-height:1.5;
+  }
+  .note-fixed b{color:var(--gold);}
+
+  /* histórico mensal */
+  .hist-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .hist-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:18px 22px;cursor:pointer;gap:14px;flex-wrap:wrap;
+  }
+  .hist-head:hover{background:var(--panel-alt);}
+  .hist-title{font-family:'Fraunces',serif;font-size:19px;font-weight:600;}
+  .hist-sub{font-size:12px;color:var(--text-faint);margin-top:3px;font-family:'IBM Plex Mono',monospace;}
+  .hist-right{display:flex;align-items:center;gap:14px;}
+  .hist-saldo{font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;}
+  .hist-saldo.pos{color:var(--green);}
+  .hist-saldo.neg{color:var(--red);}
+  .hist-chevron{color:var(--text-faint);transition:transform .2s ease;font-size:13px;}
+  .hist-card.open .hist-chevron{transform:rotate(180deg);}
+  .hist-body{
+    max-height:0;overflow:hidden;transition:max-height .25s ease;
+    border-top:1px solid transparent;
+  }
+  .hist-card.open .hist-body{max-height:3000px;border-top:1px solid var(--line);}
+  .hist-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:18px;
+    padding:20px 22px 4px;
+  }
+  @media(max-width:800px){.hist-grid{grid-template-columns:1fr;}}
+  .hist-section{
+    background:var(--bg-alt);border:1px solid var(--line);border-radius:8px;padding:14px 16px;
+  }
+  .hist-section-title{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--gold);margin-bottom:10px;
+  }
+  .hist-line{
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px;flex-wrap:wrap;
+  }
+  .hist-line:last-child{border-bottom:none;}
+  .hl-name{color:var(--text-dim);}
+  .hl-val{font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap;}
+  .mono-sm{font-family:'IBM Plex Mono',monospace;font-size:11.5px;}
+  .hist-due{color:var(--text-faint);font-size:11px;margin-left:6px;}
+  .hist-badge{
+    font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 8px;border-radius:20px;flex-shrink:0;
+  }
+  .hist-badge.ok{background:rgba(79,183,131,0.15);color:var(--green);}
+  .hist-badge.pending{background:rgba(217,123,108,0.15);color:var(--red);}
+  .hist-final{
+    display:flex;justify-content:space-between;align-items:center;
+    margin:18px 22px 22px;padding-top:16px;border-top:1px solid var(--line-strong);
+    font-family:'Fraunces',serif;font-size:20px;font-weight:600;
+  }
+  .hist-final .pos{color:var(--green);}
+  .hist-final .neg{color:var(--red);}
+
+  @media(max-width:820px){
+    .app{flex-direction:column;}
+    .sidebar{width:100%;height:auto;position:relative;flex-direction:row;flex-wrap:wrap;align-items:center;}
+    nav.tabs{flex-direction:row;flex-wrap:wrap;flex:none;width:100%;order:3;}
+    .sidebar-foot{flex-direction:row;order:2;border-top:none;flex:1;}
+    .content{padding:24px 18px 60px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="eyebrow">Carteira Pessoal</div>
+      <h1>Controle<br>Financeiro</h1>
+      <div class="sub">Sincronizado com Firestore</div>
+    </div>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="config"><span class="idx">01</span> Configuração de Salário</button>
+      <button class="tab-btn" data-tab="combustivel"><span class="idx">02</span> Combustível</button>
+      <button class="tab-btn" data-tab="saldo"><span class="idx">03</span> Saldo da Conta</button>
+      <button class="tab-btn" data-tab="variaveis"><span class="idx">04</span> Despesas Variáveis</button>
+      <button class="tab-btn" data-tab="fixas"><span class="idx">05</span> Despesas Fixas</button>
+      <button class="tab-btn" data-tab="resumo"><span class="idx">06</span> Resumo Financeiro</button>
+      <button class="tab-btn" data-tab="anotacoes"><span class="idx">07</span> Anotações</button>
+      <button class="tab-btn" data-tab="historico"><span class="idx">08</span> Histórico Mensal</button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="conn-status"><span class="dot" id="connDot"></span><span id="connLabel">conectando…</span></div>
+      <button class="btn-reset" id="btnResetMensal">↻ Reset mensal</button>
+    </div>
+  </aside>
+
+  <main class="content">
+
+    <!-- ============ 01 CONFIG SALÁRIO ============ -->
+    <section class="tab-panel active" id="tab-config">
+      <div class="panel-head">
+        <div class="eyebrow">Aba fixa · não é afetada pelo reset mensal</div>
+        <h2>Configuração de Salário</h2>
+        <p>Esses valores servem de base para todos os meses. Altere aqui sempre que seu salário mudar.</p>
+      </div>
+      <div class="card">
+        <div class="grid-2">
+          <div class="field">
+            <label>Dias trabalhados no mês</label>
+            <input type="number" id="cfgDias" min="0" step="1" placeholder="Ex: 22">
+          </div>
+          <div class="field">
+            <label>Valor do passe (R$)</label>
+            <input type="number" id="cfgPasse" min="0" step="0.01" placeholder="Ex: 4.85">
+          </div>
+          <div class="field">
+            <label>Salário base (R$)</label>
+            <input type="number" id="cfgBase" min="0" step="0.01" placeholder="Ex: 1500.00">
+          </div>
+          <div class="field">
+            <label>Salário mínimo (R$)</label>
+            <input type="number" id="cfgMinimo" min="0" step="0.01" placeholder="Ex: 1518.00">
+          </div>
+          <div class="field">
+            <label>Variação (%)</label>
+            <input type="number" id="cfgVariacao" min="0" step="0.01" placeholder="Ex: 5">
+          </div>
+        </div>
+        <button class="btn" id="btnSalvarConfig" style="margin-top:6px;">Salvar configuração</button>
+
+        <div class="result-box">
+          <div>
+            <div class="lbl">Salário calculado</div>
+            <div class="formula-note">salário = salário base + (salário mínimo × variação%) + (4 × dias trabalhados × valor do passe)</div>
+          </div>
+          <div class="val" id="cfgResultado">R$ 0,00</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 02 COMBUSTÍVEL ============ -->
+    <section class="tab-panel" id="tab-combustivel">
+      <div class="panel-head">
+        <div class="eyebrow">Aba mensal · reiniciada no reset</div>
+        <h2>Combustível</h2>
+        <p>Controle de gastos com gasolina dentro do limite definido para o mês.</p>
+      </div>
+
+      <div class="gauge-wrap">
+        <div class="gauge-card gold">
+          <div class="lbl">Limite do mês</div>
+          <div class="val" id="combLimiteView">R$ 700,00</div>
+        </div>
+        <div class="gauge-card red">
+          <div class="lbl">Utilizado</div>
+          <div class="val" id="combUtilizado">R$ 0,00</div>
+        </div>
+        <div class="gauge-card green">
+          <div class="lbl">Restante</div>
+          <div class="val" id="combRestante">R$ 0,00</div>
+          <div class="bar-track"><div class="bar-fill" id="combBar" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="field" style="max-width:220px;">
+          <label>Limite mensal (R$)</label>
+          <input type="number" id="combLimiteInput" min="0" step="0.01" value="700">
+        </div>
+        <button class="btn ghost small" id="btnSalvarLimite">Salvar limite</button>
+
+        <div class="add-row">
+          <input type="text" id="combDesc" placeholder="Descrição (ex: Posto Ipiranga)">
+          <input type="date" id="combData">
+          <input type="number" id="combValor" min="0" step="0.01" placeholder="Valor abastecido (R$)" style="max-width:200px;">
+          <button class="btn small" id="btnAddAbastecimento">+ Adicionar abastecimento</button>
+        </div>
+
+        <div class="list" id="listaCombustivel"></div>
+      </div>
+    </section>
+
+    <!-- ============ 03 SALDO DA CONTA ============ -->
+    <section class="tab-panel" id="tab-saldo">
+      <div class="panel-head">
+        <div class="eyebrow">Aba mensal · reiniciada no reset</div>
+        <h2>Saldo da Conta</h2>
+        <p>Dinheiro extra que sobrou e que deve somar junto com todas as outras variáveis no resumo final.</p>
+      </div>
+
+      <div class="card">
+        <div class="add-row">
+          <input type="text" id="saldoDesc" placeholder="Descrição (ex: Sobra do mês passado)">
+          <input type="number" id="saldoValor" min="0" step="0.01" placeholder="Valor (R$)" style="max-width:200px;">
+          <button class="btn small" id="btnAddSaldo">+ Adicionar</button>
+        </div>
+        <div class="list" id="listaSaldo"></div>
+
+        <div class="result-box" style="margin-top:24px;">
+          <div class="lbl">Total em saldo extra</div>
+          <div class="val" id="saldoTotal">R$ 0,00</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 04 DESPESAS VARIÁVEIS ============ -->
+    <section class="tab-panel" id="tab-variaveis">
+      <div class="panel-head">
+        <div class="eyebrow">Aba mensal · reiniciada no reset</div>
+        <h2>Despesas Variáveis</h2>
+        <p>Lançamentos que mudam todo mês. Marque cada um como crédito (soma) ou despesa (subtrai).</p>
+      </div>
+
+      <div class="card">
+        <div class="add-row">
+          <input type="text" id="varNome" placeholder="Descrição (ex: Freelance, Mercado)">
+          <input type="number" id="varValor" min="0" step="0.01" placeholder="Valor (R$)" style="max-width:180px;">
+          <select id="varTipo" style="max-width:150px;">
+            <option value="despesa">Despesa</option>
+            <option value="credito">Crédito</option>
+          </select>
+          <button class="btn small" id="btnAddVariavel">+ Adicionar</button>
+        </div>
+        <div class="list" id="listaVariaveis"></div>
+
+        <div class="result-box" style="margin-top:24px;">
+          <div class="lbl">Saldo líquido das despesas variáveis</div>
+          <div class="val" id="variaveisTotal">R$ 0,00</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 05 DESPESAS FIXAS ============ -->
+    <section class="tab-panel" id="tab-fixas">
+      <div class="panel-head">
+        <div class="eyebrow">Aba fixa · não é afetada pelo reset mensal</div>
+        <h2>Despesas Fixas</h2>
+        <p>Contas recorrentes com vencimento. Use as setas ▲▼ para reordenar a lista do seu jeito. O valor total começa subtraído do resumo e volta a somar conforme você marcar como pago.</p>
+      </div>
+
+      <div class="card">
+        <div class="add-row">
+          <input type="text" id="fixaNome" placeholder="Nome (ex: Aluguel, Internet)">
+          <input type="number" id="fixaValor" min="0" step="0.01" placeholder="Valor (R$)" style="max-width:160px;">
+          <input type="number" id="fixaVencimento" min="1" max="31" step="1" placeholder="Dia venc. (1-31)" style="max-width:150px;">
+          <button class="btn small" id="btnAddFixa">+ Adicionar</button>
+        </div>
+        <div class="list" id="listaFixas"></div>
+
+        <div class="grid-3" style="margin-top:24px;">
+          <div class="gauge-card">
+            <div class="lbl">Total de contas</div>
+            <div class="val" id="fixasTotal">R$ 0,00</div>
+          </div>
+          <div class="gauge-card green">
+            <div class="lbl">Já pago</div>
+            <div class="val" id="fixasPago">R$ 0,00</div>
+          </div>
+          <div class="gauge-card red">
+            <div class="lbl">Pendente</div>
+            <div class="val" id="fixasPendente">R$ 0,00</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 06 RESUMO ============ -->
+    <section class="tab-panel" id="tab-resumo">
+      <div class="panel-head">
+        <div class="eyebrow">Visão consolidada</div>
+        <h2>Resumo Financeiro</h2>
+        <p>Todas as abas somadas para mostrar o saldo real disponível na sua carteira.</p>
+      </div>
+
+      <div class="summary-grid">
+        <div class="card">
+          <div class="ledger" id="resumoLedger"></div>
+        </div>
+        <div class="card">
+          <div class="lbl" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;">Saldo final disponível</div>
+          <div class="val" id="resumoSaldoFinal" style="font-family:'Fraunces',serif;font-size:46px;color:var(--green);margin-top:8px;">R$ 0,00</div>
+          <div class="formula-note" style="margin-top:18px;">
+            Saldo final = salário calculado + saldo extra da conta + saldo líquido das despesas variáveis
+            − despesas fixas pendentes − combustível restante no mês.
+            <br><br>
+            Despesas fixas marcadas como pagas não são subtraídas novamente — o valor total é debitado uma única vez e liberado ao ser quitado. O combustível restante fica reservado até ser usado, assim como as fixas pendentes.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 07 ANOTAÇÕES ============ -->
+    <section class="tab-panel" id="tab-anotacoes">
+      <div class="panel-head">
+        <div class="eyebrow">Aba fixa · não é afetada pelo reset mensal</div>
+        <h2>Anotações</h2>
+        <p>Um bloco de notas livre, sempre salvo e disponível em qualquer mês.</p>
+      </div>
+      <div class="card">
+        <textarea id="anotacoesText" placeholder="Escreva aqui suas anotações..."></textarea>
+        <div class="save-indicator" id="anotacoesSaveIndicator"></div>
+      </div>
+    </section>
+
+    <!-- ============ 08 HISTÓRICO MENSAL ============ -->
+    <section class="tab-panel" id="tab-historico">
+      <div class="panel-head">
+        <div class="eyebrow">Arquivo · gerado a cada reset mensal</div>
+        <h2>Histórico Mensal</h2>
+        <p>Um retrato detalhado de cada mês fechado, salvo automaticamente sempre que você usa o "Reset mensal".</p>
+      </div>
+      <div class="list" id="listaHistorico"></div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<div class="modal-overlay" id="resetModal">
+  <div class="modal-box">
+    <h3>Confirmar reset mensal</h3>
+    <p>Isso vai apagar <b>combustível</b>, <b>saldo da conta</b> e <b>despesas variáveis</b> do mês atual, salvando antes um retrato completo na aba <b>Histórico Mensal</b>.
+    As abas <b>Configuração de Salário</b>, <b>Despesas Fixas</b> e <b>Anotações</b> não serão alteradas. Essa ação não pode ser desfeita.</p>
+    <div class="field">
+      <label>Nome deste mês no histórico</label>
+      <input type="text" id="resetMesLabel" placeholder="Ex: Julho/2026">
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost small" id="btnCancelReset">Cancelar</button>
+      <button class="btn danger small" id="btnConfirmReset">Resetar mês</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getFirestore, doc, onSnapshot, setDoc, getDoc
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBE0YL4Luh83o5WQC7z3Bc_IAnlESSWc-A",
+  authDomain: "controle-carteira-29e52.firebaseapp.com",
+  projectId: "controle-carteira-29e52",
+  storageBucket: "controle-carteira-29e52.firebasestorage.app",
+  messagingSenderId: "697955574935",
+  appId: "1:697955574935:web:aa29f1dc1a71a1a9a9f5d2",
+  measurementId: "G-CFDQKRS79Q"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const docRef = doc(db, "financeiro", "dados");
+
+/* ---------------- estado local ---------------- */
+const defaultState = {
+  config: { diasTrabalhados: 0, salarioBase: 0, salarioMinimo: 0, variacaoPercent: 0, valorPasse: 0 },
+  combustivel: { limite: 700, abastecimentos: [] },
+  saldoConta: [],
+  despesasVariaveis: [],
+  despesasFixas: [],
+  anotacoes: "",
+  historico: []
+};
+
+let state = JSON.parse(JSON.stringify(defaultState));
+let isRemoteUpdate = false;
+let anotacoesTimer = null;
+
+/* ---------------- utilidades ---------------- */
+const fmt = (n) => (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+function toast(msg) {
+  const wrap = document.getElementById('toast');
+  const el = document.createElement('div');
+  el.className = 'toast-item';
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+function setConn(status) {
+  const dot = document.getElementById('connDot');
+  const label = document.getElementById('connLabel');
+  dot.className = 'dot';
+  if (status === 'on') { dot.classList.add('on'); label.textContent = 'sincronizado'; }
+  else if (status === 'err') { dot.classList.add('err'); label.textContent = 'erro de conexão'; }
+  else { label.textContent = 'conectando…'; }
+}
+
+async function persist(partial) {
+  isRemoteUpdate = true;
+  try {
+    await setDoc(docRef, partial, { merge: true });
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao salvar no Firestore.');
+    setConn('err');
+  }
+  setTimeout(() => { isRemoteUpdate = false; }, 50);
+}
+
+/* ---------------- Firestore: inicialização + listener ---------------- */
+(async function bootstrap() {
+  try {
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) {
+      await setDoc(docRef, defaultState);
+    }
+  } catch (e) {
+    console.error(e);
+    setConn('err');
+  }
+
+  onSnapshot(docRef, (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+    state = {
+      config: { ...defaultState.config, ...(data.config || {}) },
+      combustivel: {
+        limite: data.combustivel?.limite ?? 700,
+        abastecimentos: data.combustivel?.abastecimentos || []
+      },
+      saldoConta: data.saldoConta || [],
+      despesasVariaveis: data.despesasVariaveis || [],
+      despesasFixas: data.despesasFixas || [],
+      anotacoes: data.anotacoes || "",
+      historico: data.historico || []
+    };
+    setConn('on');
+    renderAll();
+  }, (err) => {
+    console.error(err);
+    setConn('err');
+  });
+})();
+
+/* ---------------- navegação de abas ---------------- */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ================= 01 CONFIG SALÁRIO ================= */
+function calcularSalario(cfg) {
+  const base = Number(cfg.salarioBase) || 0;
+  const minimo = Number(cfg.salarioMinimo) || 0;
+  const variacao = Number(cfg.variacaoPercent) || 0;
+  const dias = Number(cfg.diasTrabalhados) || 0;
+  const passe = Number(cfg.valorPasse) || 0;
+  return base + (minimo * (variacao / 100)) + (4 * dias * passe);
+}
+
+function renderConfig() {
+  const c = state.config;
+  document.getElementById('cfgDias').value = c.diasTrabalhados || '';
+  document.getElementById('cfgBase').value = c.salarioBase || '';
+  document.getElementById('cfgMinimo').value = c.salarioMinimo || '';
+  document.getElementById('cfgVariacao').value = c.variacaoPercent || '';
+  document.getElementById('cfgPasse').value = c.valorPasse || '';
+  document.getElementById('cfgResultado').textContent = fmt(calcularSalario(c));
+}
+
+document.getElementById('btnSalvarConfig').addEventListener('click', async () => {
+  const novo = {
+    diasTrabalhados: Number(document.getElementById('cfgDias').value) || 0,
+    salarioBase: Number(document.getElementById('cfgBase').value) || 0,
+    salarioMinimo: Number(document.getElementById('cfgMinimo').value) || 0,
+    variacaoPercent: Number(document.getElementById('cfgVariacao').value) || 0,
+    valorPasse: Number(document.getElementById('cfgPasse').value) || 0
+  };
+  state.config = novo;
+  document.getElementById('cfgResultado').textContent = fmt(calcularSalario(novo));
+  await persist({ config: novo });
+  toast('Configuração de salário salva.');
+  renderResumo();
+});
+
+/* ================= 02 COMBUSTÍVEL ================= */
+function renderCombustivel() {
+  const c = state.combustivel;
+  const utilizado = c.abastecimentos.reduce((s, a) => s + (Number(a.valor) || 0), 0);
+  const restante = (Number(c.limite) || 0) - utilizado;
+  document.getElementById('combLimiteView').textContent = fmt(c.limite);
+  document.getElementById('combLimiteInput').value = c.limite;
+  document.getElementById('combUtilizado').textContent = fmt(utilizado);
+  document.getElementById('combRestante').textContent = fmt(restante);
+
+  const pct = c.limite > 0 ? Math.min(100, (utilizado / c.limite) * 100) : 0;
+  const bar = document.getElementById('combBar');
+  bar.style.width = pct + '%';
+  bar.classList.toggle('over', restante < 0);
+
+  const list = document.getElementById('listaCombustivel');
+  list.innerHTML = '';
+  if (c.abastecimentos.length === 0) {
+    list.innerHTML = '<div class="empty-hint">Nenhum abastecimento lançado neste mês.</div>';
+  } else {
+    c.abastecimentos.slice().reverse().forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'row-item';
+      row.innerHTML = `
+        <input type="text" class="grow" value="${escapeHtml(item.desc || '')}" data-field="desc" data-id="${item.id}" placeholder="Descrição">
+        <input type="date" class="date-input" value="${item.data || ''}" data-field="data" data-id="${item.id}">
+        <input type="number" step="0.01" class="val-input mono" value="${item.valor}" data-field="valor" data-id="${item.id}">
+        <button class="icon-btn" data-del="${item.id}">✕</button>
+      `;
+      list.appendChild(row);
+    });
+  }
+}
+
+document.getElementById('btnSalvarLimite').addEventListener('click', async () => {
+  const val = Number(document.getElementById('combLimiteInput').value) || 0;
+  state.combustivel.limite = val;
+  await persist({ combustivel: state.combustivel });
+  renderCombustivel(); renderResumo();
+  toast('Limite de combustível atualizado.');
+});
+
+document.getElementById('btnAddAbastecimento').addEventListener('click', async () => {
+  const desc = document.getElementById('combDesc').value.trim();
+  const data = document.getElementById('combData').value;
+  const valor = Number(document.getElementById('combValor').value);
+  if (!valor || valor <= 0) { toast('Informe um valor válido.'); return; }
+  state.combustivel.abastecimentos.push({ id: uid(), desc, data, valor });
+  await persist({ combustivel: state.combustivel });
+  document.getElementById('combDesc').value = '';
+  document.getElementById('combData').value = '';
+  document.getElementById('combValor').value = '';
+  renderCombustivel(); renderResumo();
+});
+
+document.getElementById('listaCombustivel').addEventListener('click', async (e) => {
+  const id = e.target.dataset.del;
+  if (!id) return;
+  state.combustivel.abastecimentos = state.combustivel.abastecimentos.filter(a => a.id !== id);
+  await persist({ combustivel: state.combustivel });
+  renderCombustivel(); renderResumo();
+});
+document.getElementById('listaCombustivel').addEventListener('change', async (e) => {
+  const id = e.target.dataset.id, field = e.target.dataset.field;
+  if (!id || !field) return;
+  const item = state.combustivel.abastecimentos.find(a => a.id === id);
+  if (!item) return;
+  item[field] = field === 'valor' ? Number(e.target.value) : e.target.value;
+  await persist({ combustivel: state.combustivel });
+  renderCombustivel(); renderResumo();
+});
+
+/* ================= 03 SALDO DA CONTA ================= */
+function renderSaldo() {
+  const list = document.getElementById('listaSaldo');
+  list.innerHTML = '';
+  if (state.saldoConta.length === 0) {
+    list.innerHTML = '<div class="empty-hint">Nenhum valor extra lançado.</div>';
+  } else {
+    state.saldoConta.slice().reverse().forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'row-item';
+      row.innerHTML = `
+        <input type="text" class="grow" value="${escapeHtml(item.desc || '')}" data-field="desc" data-id="${item.id}" placeholder="Descrição">
+        <input type="number" step="0.01" class="val-input mono" value="${item.valor}" data-field="valor" data-id="${item.id}">
+        <button class="icon-btn" data-del="${item.id}">✕</button>
+      `;
+      list.appendChild(row);
+    });
+  }
+  const total = state.saldoConta.reduce((s, a) => s + (Number(a.valor) || 0), 0);
+  document.getElementById('saldoTotal').textContent = fmt(total);
+}
+
+document.getElementById('btnAddSaldo').addEventListener('click', async () => {
+  const desc = document.getElementById('saldoDesc').value.trim();
+  const valor = Number(document.getElementById('saldoValor').value);
+  if (!valor) { toast('Informe um valor válido.'); return; }
+  state.saldoConta.push({ id: uid(), desc, valor });
+  await persist({ saldoConta: state.saldoConta });
+  document.getElementById('saldoDesc').value = '';
+  document.getElementById('saldoValor').value = '';
+  renderSaldo(); renderResumo();
+});
+document.getElementById('listaSaldo').addEventListener('click', async (e) => {
+  const id = e.target.dataset.del;
+  if (!id) return;
+  state.saldoConta = state.saldoConta.filter(a => a.id !== id);
+  await persist({ saldoConta: state.saldoConta });
+  renderSaldo(); renderResumo();
+});
+document.getElementById('listaSaldo').addEventListener('change', async (e) => {
+  const id = e.target.dataset.id, field = e.target.dataset.field;
+  if (!id || !field) return;
+  const item = state.saldoConta.find(a => a.id === id);
+  if (!item) return;
+  item[field] = field === 'valor' ? Number(e.target.value) : e.target.value;
+  await persist({ saldoConta: state.saldoConta });
+  renderSaldo(); renderResumo();
+});
+
+/* ================= 04 DESPESAS VARIÁVEIS ================= */
+function renderVariaveis() {
+  const list = document.getElementById('listaVariaveis');
+  list.innerHTML = '';
+  if (state.despesasVariaveis.length === 0) {
+    list.innerHTML = '<div class="empty-hint">Nenhuma despesa variável lançada.</div>';
+  } else {
+    state.despesasVariaveis.slice().reverse().forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'row-item';
+      row.innerHTML = `
+        <input type="text" class="grow" value="${escapeHtml(item.nome || '')}" data-field="nome" data-id="${item.id}" placeholder="Descrição">
+        <input type="number" step="0.01" class="val-input mono" value="${item.valor}" data-field="valor" data-id="${item.id}">
+        <span class="tag ${item.tipo}" data-toggle="${item.id}">${item.tipo === 'credito' ? '+ Crédito' : '− Despesa'}</span>
+        <button class="icon-btn" data-del="${item.id}">✕</button>
+      `;
+      list.appendChild(row);
+    });
+  }
+  const total = state.despesasVariaveis.reduce((s, a) => {
+    const v = Number(a.valor) || 0;
+    return s + (a.tipo === 'credito' ? v : -v);
+  }, 0);
+  const el = document.getElementById('variaveisTotal');
+  el.textContent = fmt(total);
+  el.style.color = total >= 0 ? 'var(--green)' : 'var(--red)';
+}
+
+document.getElementById('btnAddVariavel').addEventListener('click', async () => {
+  const nome = document.getElementById('varNome').value.trim();
+  const valor = Number(document.getElementById('varValor').value);
+  const tipo = document.getElementById('varTipo').value;
+  if (!valor || valor <= 0) { toast('Informe um valor válido.'); return; }
+  state.despesasVariaveis.push({ id: uid(), nome, valor, tipo });
+  await persist({ despesasVariaveis: state.despesasVariaveis });
+  document.getElementById('varNome').value = '';
+  document.getElementById('varValor').value = '';
+  renderVariaveis(); renderResumo();
+});
+document.getElementById('listaVariaveis').addEventListener('click', async (e) => {
+  const delId = e.target.dataset.del;
+  const toggleId = e.target.dataset.toggle;
+  if (delId) {
+    state.despesasVariaveis = state.despesasVariaveis.filter(a => a.id !== delId);
+    await persist({ despesasVariaveis: state.despesasVariaveis });
+    renderVariaveis(); renderResumo();
+  } else if (toggleId) {
+    const item = state.despesasVariaveis.find(a => a.id === toggleId);
+    if (item) item.tipo = item.tipo === 'credito' ? 'despesa' : 'credito';
+    await persist({ despesasVariaveis: state.despesasVariaveis });
+    renderVariaveis(); renderResumo();
+  }
+});
+document.getElementById('listaVariaveis').addEventListener('change', async (e) => {
+  const id = e.target.dataset.id, field = e.target.dataset.field;
+  if (!id || !field) return;
+  const item = state.despesasVariaveis.find(a => a.id === id);
+  if (!item) return;
+  item[field] = field === 'valor' ? Number(e.target.value) : e.target.value;
+  await persist({ despesasVariaveis: state.despesasVariaveis });
+  renderVariaveis(); renderResumo();
+});
+
+/* ================= 05 DESPESAS FIXAS ================= */
+function renderFixas() {
+  const list = document.getElementById('listaFixas');
+  list.innerHTML = '';
+  if (state.despesasFixas.length === 0) {
+    list.innerHTML = '<div class="empty-hint">Nenhuma despesa fixa cadastrada.</div>';
+  } else {
+    state.despesasFixas.forEach((item, i) => {
+      const isFirst = i === 0;
+      const isLast = i === state.despesasFixas.length - 1;
+      const row = document.createElement('div');
+      row.className = 'row-item';
+      row.innerHTML = `
+        <div class="order-controls">
+          <button class="icon-btn small-icon" data-move-up="${item.id}" ${isFirst ? 'disabled' : ''} title="Mover para cima">▲</button>
+          <button class="icon-btn small-icon" data-move-down="${item.id}" ${isLast ? 'disabled' : ''} title="Mover para baixo">▼</button>
+        </div>
+        <input type="text" class="grow" value="${escapeHtml(item.nome || '')}" data-field="nome" data-id="${item.id}" placeholder="Nome">
+        <input type="number" step="0.01" class="val-input mono" value="${item.valor}" data-field="valor" data-id="${item.id}">
+        <div class="due-day" title="Dia de vencimento">
+          <span class="due-lbl">Vence dia</span>
+          <input type="number" class="date-input" min="1" max="31" step="1" value="${item.vencimento || ''}" data-field="vencimento" data-id="${item.id}" style="width:64px;text-align:center;">
+        </div>
+        <label class="chk-wrap"><input type="checkbox" data-pago="${item.id}" ${item.pago ? 'checked' : ''}> Pago</label>
+        <button class="icon-btn" data-del="${item.id}">✕</button>
+      `;
+      list.appendChild(row);
+    });
+  }
+  const total = state.despesasFixas.reduce((s, a) => s + (Number(a.valor) || 0), 0);
+  const pago = state.despesasFixas.filter(a => a.pago).reduce((s, a) => s + (Number(a.valor) || 0), 0);
+  document.getElementById('fixasTotal').textContent = fmt(total);
+  document.getElementById('fixasPago').textContent = fmt(pago);
+  document.getElementById('fixasPendente').textContent = fmt(total - pago);
+}
+
+function clampDia(v) {
+  let n = parseInt(v, 10);
+  if (isNaN(n)) return '';
+  if (n < 1) n = 1;
+  if (n > 31) n = 31;
+  return n;
+}
+
+document.getElementById('btnAddFixa').addEventListener('click', async () => {
+  const nome = document.getElementById('fixaNome').value.trim();
+  const valor = Number(document.getElementById('fixaValor').value);
+  const vencimento = clampDia(document.getElementById('fixaVencimento').value);
+  if (!nome || !valor) { toast('Preencha nome e valor.'); return; }
+  state.despesasFixas.push({ id: uid(), nome, valor, vencimento, pago: false });
+  await persist({ despesasFixas: state.despesasFixas });
+  document.getElementById('fixaNome').value = '';
+  document.getElementById('fixaValor').value = '';
+  document.getElementById('fixaVencimento').value = '';
+  renderFixas(); renderResumo();
+});
+document.getElementById('listaFixas').addEventListener('click', async (e) => {
+  const delId = e.target.dataset.del;
+  const upId = e.target.dataset.moveUp;
+  const downId = e.target.dataset.moveDown;
+  if (delId) {
+    state.despesasFixas = state.despesasFixas.filter(a => a.id !== delId);
+    await persist({ despesasFixas: state.despesasFixas });
+    renderFixas(); renderResumo();
+    return;
+  }
+  if (upId || downId) {
+    const id = upId || downId;
+    const idx = state.despesasFixas.findIndex(a => a.id === id);
+    if (idx === -1) return;
+    const targetIdx = upId ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= state.despesasFixas.length) return;
+    const arr = state.despesasFixas;
+    [arr[idx], arr[targetIdx]] = [arr[targetIdx], arr[idx]];
+    await persist({ despesasFixas: arr });
+    renderFixas(); renderResumo();
+  }
+});
+document.getElementById('listaFixas').addEventListener('change', async (e) => {
+  const pagoId = e.target.dataset.pago;
+  const id = e.target.dataset.id, field = e.target.dataset.field;
+  if (pagoId) {
+    const item = state.despesasFixas.find(a => a.id === pagoId);
+    if (item) item.pago = e.target.checked;
+    await persist({ despesasFixas: state.despesasFixas });
+    renderFixas(); renderResumo();
+    return;
+  }
+  if (!id || !field) return;
+  const item = state.despesasFixas.find(a => a.id === id);
+  if (!item) return;
+  if (field === 'valor') item[field] = Number(e.target.value);
+  else if (field === 'vencimento') item[field] = clampDia(e.target.value);
+  else item[field] = e.target.value;
+  await persist({ despesasFixas: state.despesasFixas });
+  renderFixas(); renderResumo();
+});
+
+/* ================= 06 RESUMO ================= */
+function computeResumo() {
+  const salario = calcularSalario(state.config);
+  const saldoExtra = state.saldoConta.reduce((s, a) => s + (Number(a.valor) || 0), 0);
+  const variaveisNet = state.despesasVariaveis.reduce((s, a) => {
+    const v = Number(a.valor) || 0;
+    return s + (a.tipo === 'credito' ? v : -v);
+  }, 0);
+  const varCredito = state.despesasVariaveis.filter(a => a.tipo === 'credito').reduce((s, a) => s + (Number(a.valor) || 0), 0);
+  const varDespesa = state.despesasVariaveis.filter(a => a.tipo === 'despesa').reduce((s, a) => s + (Number(a.valor) || 0), 0);
+  const fixasTotal = state.despesasFixas.reduce((s, a) => s + (Number(a.valor) || 0), 0);
+  const fixasPago = state.despesasFixas.filter(a => a.pago).reduce((s, a) => s + (Number(a.valor) || 0), 0);
+  const fixasPendente = fixasTotal - fixasPago;
+  const combUtilizado = state.combustivel.abastecimentos.reduce((s, a) => s + (Number(a.valor) || 0), 0);
+  const combLimite = Number(state.combustivel.limite) || 0;
+  const combRestante = combLimite - combUtilizado;
+  const saldoFinal = salario + saldoExtra + variaveisNet - fixasPendente - combRestante;
+  return { salario, saldoExtra, variaveisNet, varCredito, varDespesa, fixasTotal, fixasPago, fixasPendente, combUtilizado, combLimite, combRestante, saldoFinal };
+}
+
+function renderResumo() {
+  const { salario, saldoExtra, varCredito, varDespesa, fixasPendente, fixasPago, combRestante, saldoFinal } = computeResumo();
+
+  const rows = [
+    { l: 'Salário calculado', v: salario, cls: 'pos' },
+    { l: 'Saldo extra da conta', v: saldoExtra, cls: 'pos' },
+    { l: 'Créditos variáveis', v: varCredito, cls: 'pos', sub: true },
+    { l: 'Despesas variáveis', v: -varDespesa, cls: 'neg', sub: true },
+    { l: 'Combustível restante no mês', v: -combRestante, cls: 'neg' },
+    { l: 'Despesas fixas pendentes', v: -fixasPendente, cls: 'neg' },
+    { l: 'Despesas fixas já pagas (neutro)', v: fixasPago, cls: '', sub: true },
+  ];
+
+  const ledger = document.getElementById('resumoLedger');
+  ledger.innerHTML = rows.map(r => `
+    <div class="ledger-row ${r.sub ? 'sub' : ''}">
+      <span class="l">${r.l}</span>
+      <span class="v ${r.cls}">${r.v < 0 ? '− ' : ''}${fmt(Math.abs(r.v))}</span>
+    </div>
+  `).join('') + `
+    <div class="ledger-row total">
+      <span class="l">Saldo final</span>
+      <span class="v ${saldoFinal >= 0 ? 'pos' : 'neg'}">${fmt(saldoFinal)}</span>
+    </div>
+  `;
+
+  const finalEl = document.getElementById('resumoSaldoFinal');
+  finalEl.textContent = fmt(saldoFinal);
+  finalEl.style.color = saldoFinal >= 0 ? 'var(--green)' : 'var(--red)';
+}
+
+/* ================= 07 ANOTAÇÕES ================= */
+function renderAnotacoes() {
+  const ta = document.getElementById('anotacoesText');
+  if (document.activeElement !== ta) ta.value = state.anotacoes || '';
+}
+document.getElementById('anotacoesText').addEventListener('input', (e) => {
+  state.anotacoes = e.target.value;
+  clearTimeout(anotacoesTimer);
+  document.getElementById('anotacoesSaveIndicator').textContent = 'digitando…';
+  anotacoesTimer = setTimeout(async () => {
+    await persist({ anotacoes: state.anotacoes });
+    document.getElementById('anotacoesSaveIndicator').textContent = 'salvo ✓ ' + new Date().toLocaleTimeString('pt-BR');
+  }, 700);
+});
+
+/* ================= 08 HISTÓRICO MENSAL ================= */
+function renderHistorico() {
+  const wrap = document.getElementById('listaHistorico');
+  wrap.innerHTML = '';
+  if (!state.historico || state.historico.length === 0) {
+    wrap.innerHTML = '<div class="empty-hint">Nenhum mês fechado ainda. Use "Reset mensal" para salvar o primeiro registro aqui.</div>';
+    return;
+  }
+
+  state.historico.forEach((h) => {
+    const card = document.createElement('div');
+    card.className = 'hist-card';
+
+    const fixasRows = (h.despesasFixasSnapshot || []).map(f => `
+      <div class="hist-line">
+        <span class="hl-name">${escapeHtml(f.nome || '(sem nome)')} <span class="hist-due">dia ${f.vencimento || '—'}</span></span>
+        <span class="hist-badge ${f.pago ? 'ok' : 'pending'}">${f.pago ? 'Pago' : 'Pendente'}</span>
+        <span class="hl-val">${fmt(f.valor)}</span>
+      </div>`).join('') || '<div class="empty-hint" style="margin-top:8px;">Nenhuma despesa fixa registrada.</div>';
+
+    const variaveisRows = (h.despesasVariaveis || []).map(v => `
+      <div class="hist-line">
+        <span class="hl-name">${escapeHtml(v.nome || '(sem nome)')}</span>
+        <span class="hist-badge ${v.tipo === 'credito' ? 'ok' : 'pending'}">${v.tipo === 'credito' ? 'Crédito' : 'Despesa'}</span>
+        <span class="hl-val">${fmt(v.valor)}</span>
+      </div>`).join('') || '<div class="empty-hint" style="margin-top:8px;">Nenhuma despesa variável registrada.</div>';
+
+    const combRows = (h.combustivel?.abastecimentos || []).map(a => `
+      <div class="hist-line">
+        <span class="hl-name">${escapeHtml(a.desc || '(sem descrição)')} ${a.data ? '<span class="hist-due">' + a.data.split('-').reverse().join('/') + '</span>' : ''}</span>
+        <span class="hl-val">${fmt(a.valor)}</span>
+      </div>`).join('') || '<div class="empty-hint" style="margin-top:8px;">Nenhum abastecimento registrado.</div>';
+
+    const saldoRows = (h.saldoConta || []).map(s => `
+      <div class="hist-line">
+        <span class="hl-name">${escapeHtml(s.desc || '(sem descrição)')}</span>
+        <span class="hl-val">${fmt(s.valor)}</span>
+      </div>`).join('') || '<div class="empty-hint" style="margin-top:8px;">Nenhum valor extra registrado.</div>';
+
+    card.innerHTML = `
+      <div class="hist-head" data-toggle="${h.id}">
+        <div>
+          <div class="hist-title">${escapeHtml(h.label)}</div>
+          <div class="hist-sub">Fechado em ${h.fechadoEmDisplay}</div>
+        </div>
+        <div class="hist-right">
+          <div class="hist-saldo ${h.saldoFinal >= 0 ? 'pos' : 'neg'}">${fmt(h.saldoFinal)}</div>
+          <button class="icon-btn" data-del-hist="${h.id}" title="Excluir este registro">✕</button>
+          <span class="hist-chevron">▾</span>
+        </div>
+      </div>
+      <div class="hist-body" id="hist-body-${h.id}">
+        <div class="hist-grid">
+          <div class="hist-section">
+            <div class="hist-section-title">Salário &amp; Saldo</div>
+            <div class="hist-line"><span class="hl-name">Salário calculado</span><span class="hl-val">${fmt(h.salario)}</span></div>
+            <div class="hist-line"><span class="hl-name">Dias trabalhados / Valor passe</span><span class="hl-val mono-sm">${h.config?.diasTrabalhados ?? 0} dias · ${fmt(h.config?.valorPasse)}</span></div>
+            <div class="hist-line"><span class="hl-name">Saldo extra da conta (total)</span><span class="hl-val">${fmt(h.saldoContaTotal)}</span></div>
+            ${saldoRows}
+          </div>
+
+          <div class="hist-section">
+            <div class="hist-section-title">Combustível</div>
+            <div class="hist-line"><span class="hl-name">Limite do mês</span><span class="hl-val">${fmt(h.combustivel?.limite)}</span></div>
+            <div class="hist-line"><span class="hl-name">Utilizado</span><span class="hl-val">${fmt(h.combustivel?.utilizado)}</span></div>
+            <div class="hist-line"><span class="hl-name">Restante (usado no cálculo)</span><span class="hl-val">${fmt(h.combustivel?.restante)}</span></div>
+            ${combRows}
+          </div>
+
+          <div class="hist-section">
+            <div class="hist-section-title">Despesas Variáveis</div>
+            <div class="hist-line"><span class="hl-name">Créditos</span><span class="hl-val">${fmt(h.varCredito)}</span></div>
+            <div class="hist-line"><span class="hl-name">Despesas</span><span class="hl-val">− ${fmt(h.varDespesa)}</span></div>
+            <div class="hist-line"><span class="hl-name">Líquido</span><span class="hl-val">${fmt(h.variaveisNet)}</span></div>
+            ${variaveisRows}
+          </div>
+
+          <div class="hist-section">
+            <div class="hist-section-title">Despesas Fixas (situação no fechamento)</div>
+            <div class="hist-line"><span class="hl-name">Total</span><span class="hl-val">${fmt(h.fixasTotal)}</span></div>
+            <div class="hist-line"><span class="hl-name">Pago</span><span class="hl-val">${fmt(h.fixasPago)}</span></div>
+            <div class="hist-line"><span class="hl-name">Pendente</span><span class="hl-val">${fmt(h.fixasPendente)}</span></div>
+            ${fixasRows}
+          </div>
+        </div>
+
+        <div class="hist-final">
+          <span>Saldo final do mês</span>
+          <span class="${h.saldoFinal >= 0 ? 'pos' : 'neg'}">${fmt(h.saldoFinal)}</span>
+        </div>
+      </div>
+    `;
+    wrap.appendChild(card);
+  });
+}
+
+document.getElementById('listaHistorico').addEventListener('click', async (e) => {
+  const toggleId = e.target.closest('[data-toggle]')?.dataset.toggle;
+  const delId = e.target.dataset.delHist;
+  if (delId) {
+    e.stopPropagation();
+    state.historico = state.historico.filter(h => h.id !== delId);
+    await persist({ historico: state.historico });
+    renderHistorico();
+    return;
+  }
+  if (toggleId) {
+    const card = e.target.closest('.hist-card');
+    card.classList.toggle('open');
+  }
+});
+const resetModal = document.getElementById('resetModal');
+document.getElementById('btnResetMensal').addEventListener('click', () => {
+  const agora = new Date();
+  let label = agora.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  label = label.charAt(0).toUpperCase() + label.slice(1);
+  document.getElementById('resetMesLabel').value = label;
+  resetModal.classList.add('show');
+});
+document.getElementById('btnCancelReset').addEventListener('click', () => resetModal.classList.remove('show'));
+document.getElementById('btnConfirmReset').addEventListener('click', async () => {
+  const resumo = computeResumo();
+  const labelInput = document.getElementById('resetMesLabel').value.trim();
+  const agora = new Date();
+  let autoLabel = agora.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  autoLabel = autoLabel.charAt(0).toUpperCase() + autoLabel.slice(1);
+
+  const snapshot = {
+    id: uid(),
+    label: labelInput || autoLabel,
+    fechadoEm: agora.toISOString(),
+    fechadoEmDisplay: agora.toLocaleDateString('pt-BR') + ' às ' + agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    config: { ...state.config },
+    salario: resumo.salario,
+    saldoConta: state.saldoConta.map(x => ({ ...x })),
+    saldoContaTotal: resumo.saldoExtra,
+    despesasVariaveis: state.despesasVariaveis.map(x => ({ ...x })),
+    varCredito: resumo.varCredito,
+    varDespesa: resumo.varDespesa,
+    variaveisNet: resumo.variaveisNet,
+    despesasFixasSnapshot: state.despesasFixas.map(x => ({ ...x })),
+    fixasTotal: resumo.fixasTotal,
+    fixasPago: resumo.fixasPago,
+    fixasPendente: resumo.fixasPendente,
+    combustivel: {
+      limite: resumo.combLimite,
+      abastecimentos: state.combustivel.abastecimentos.map(x => ({ ...x })),
+      utilizado: resumo.combUtilizado,
+      restante: resumo.combRestante
+    },
+    saldoFinal: resumo.saldoFinal
+  };
+
+  state.historico = [snapshot, ...state.historico];
+  state.combustivel = { limite: state.combustivel.limite || 700, abastecimentos: [] };
+  state.saldoConta = [];
+  state.despesasVariaveis = [];
+
+  await persist({
+    historico: state.historico,
+    combustivel: state.combustivel,
+    saldoConta: state.saldoConta,
+    despesasVariaveis: state.despesasVariaveis
+  });
+  resetModal.classList.remove('show');
+  renderAll();
+  toast('Mês fechado e salvo no histórico.');
+});
+
+/* ---------------- helpers ---------------- */
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[m]));
+}
+
+function renderAll() {
+  renderConfig();
+  renderCombustivel();
+  renderSaldo();
+  renderVariaveis();
+  renderFixas();
+  renderResumo();
+  renderAnotacoes();
+  renderHistorico();
+}
+
+renderAll();
+</script>
+</body>
+</html>
