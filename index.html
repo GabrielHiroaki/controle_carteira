@@ -23,6 +23,8 @@
     --gold:#cda349;
     --red:#d97b6c;
     --red-dim:#5c3831;
+    --teal:#5aa6b8;
+    --teal-dim:#2f4d54;
     --radius:10px;
     --shadow: 0 8px 30px rgba(0,0,0,0.35);
   }
@@ -485,6 +487,42 @@
   .hist-final .pos{color:var(--green);}
   .hist-final .neg{color:var(--red);}
 
+  /* gráfico de rosca (distribuição de gastos) */
+  .chart-card{
+    display:flex;gap:32px;align-items:center;flex-wrap:wrap;
+  }
+  .donut-wrap{position:relative;width:170px;height:170px;flex-shrink:0;}
+  .donut{
+    width:170px;height:170px;border-radius:50%;
+    background:conic-gradient(var(--line-strong) 0 100%);
+  }
+  .donut-hole{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:112px;height:112px;border-radius:50%;background:var(--panel);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border:1px solid var(--line);
+  }
+  .donut-hole .dh-lbl{font-size:9.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;font-family:'IBM Plex Mono',monospace;}
+  .donut-hole .dh-val{font-family:'Fraunces',serif;font-size:17px;margin-top:2px;text-align:center;padding:0 8px;}
+  .legend{display:flex;flex-direction:column;gap:12px;flex:1;min-width:220px;}
+  .legend-item{display:flex;align-items:center;gap:10px;font-size:13px;}
+  .legend-dot{width:11px;height:11px;border-radius:3px;flex-shrink:0;}
+  .legend-item .li-name{color:var(--text-dim);flex:1;}
+  .legend-item .li-val{font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  .legend-item .li-pct{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-faint);width:42px;text-align:right;}
+
+  /* gráfico de barras (evolução do saldo) */
+  .evo-chart-card{margin-bottom:24px;}
+  .evo-chart-card .panel-head-inline{
+    display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;
+  }
+  .evo-chart-card .panel-head-inline h3{
+    font-family:'Fraunces',serif;font-size:18px;font-weight:600;margin:0;
+  }
+  .evo-svg-scroll{overflow-x:auto;padding-bottom:4px;}
+  .evo-bar-val{font-family:'IBM Plex Mono',monospace;font-size:10.5px;fill:var(--text-dim);}
+  .evo-bar-lbl{font-family:'Inter',sans-serif;font-size:10px;fill:var(--text-faint);}
+
   @media(max-width:820px){
     .app{flex-direction:column;}
     .sidebar{width:100%;height:auto;position:relative;flex-direction:row;flex-wrap:wrap;align-items:center;}
@@ -714,6 +752,21 @@
           </div>
         </div>
       </div>
+
+      <div class="card chart-card" style="margin-top:20px;">
+        <div style="width:100%;order:-1;margin-bottom:-8px;">
+          <h3 style="font-family:'Fraunces',serif;font-size:18px;font-weight:600;margin:0 0 4px;">Distribuição dos gastos deste mês</h3>
+          <p style="color:var(--text-dim);font-size:12.5px;margin:0;">Como o dinheiro gasto este mês se divide entre fixas, variáveis e combustível.</p>
+        </div>
+        <div class="donut-wrap">
+          <div class="donut" id="gastosDonut"></div>
+          <div class="donut-hole">
+            <span class="dh-lbl">Total gasto</span>
+            <span class="dh-val" id="gastosDonutTotal">R$ 0,00</span>
+          </div>
+        </div>
+        <div class="legend" id="gastosLegend"></div>
+      </div>
     </section>
 
     <!-- ============ 07 ANOTAÇÕES ============ -->
@@ -736,6 +789,14 @@
         <h2>Histórico Mensal</h2>
         <p>Um retrato detalhado de cada mês fechado, salvo automaticamente sempre que você usa o "Reset mensal".</p>
       </div>
+
+      <div class="card evo-chart-card" id="evoChartCard" style="display:none;">
+        <div class="panel-head-inline">
+          <h3>Evolução do Saldo Final</h3>
+        </div>
+        <div class="evo-svg-scroll" id="evoChartWrap"></div>
+      </div>
+
       <div class="list" id="listaHistorico"></div>
     </section>
 
@@ -1282,6 +1343,7 @@ function renderResumo() {
   const finalEl = document.getElementById('resumoSaldoFinal');
   finalEl.textContent = fmt(saldoFinal);
   finalEl.style.color = saldoFinal >= 0 ? 'var(--green)' : 'var(--red)';
+  renderGastosDonut();
 }
 
 /* ================= 07 ANOTAÇÕES ================= */
@@ -1299,8 +1361,105 @@ document.getElementById('anotacoesText').addEventListener('input', (e) => {
   }, 700);
 });
 
-/* ================= 08 HISTÓRICO MENSAL ================= */
+/* ================= GRÁFICO: DISTRIBUIÇÃO DE GASTOS (rosca) ================= */
+function renderGastosDonut() {
+  const r = computeResumo();
+  const fixas = r.fixasTotal;
+  const variaveis = r.varDespesa;
+  const combustivel = r.combUtilizado;
+  const total = fixas + variaveis + combustivel;
+
+  const donut = document.getElementById('gastosDonut');
+  const totalEl = document.getElementById('gastosDonutTotal');
+  const legend = document.getElementById('gastosLegend');
+
+  totalEl.textContent = fmt(total);
+
+  if (total <= 0) {
+    donut.style.background = 'conic-gradient(var(--line-strong) 0 100%)';
+    legend.innerHTML = '<div class="empty-hint" style="margin:0;">Nenhum gasto lançado ainda este mês.</div>';
+    return;
+  }
+
+  const items = [
+    { name: 'Despesas fixas', val: fixas, color: 'var(--gold)' },
+    { name: 'Despesas variáveis', val: variaveis, color: 'var(--red)' },
+    { name: 'Combustível', val: combustivel, color: 'var(--teal)' }
+  ].filter(i => i.val > 0);
+
+  let acc = 0;
+  const segments = items.map(i => {
+    const pct = (i.val / total) * 100;
+    const seg = `${i.color} ${acc}% ${acc + pct}%`;
+    acc += pct;
+    return seg;
+  });
+  donut.style.background = `conic-gradient(${segments.join(', ')})`;
+
+  legend.innerHTML = items.map(i => {
+    const pct = (i.val / total) * 100;
+    return `
+      <div class="legend-item">
+        <span class="legend-dot" style="background:${i.color};"></span>
+        <span class="li-name">${i.name}</span>
+        <span class="li-val">${fmt(i.val)}</span>
+        <span class="li-pct">${pct.toFixed(1)}%</span>
+      </div>`;
+  }).join('');
+}
+
+/* ================= GRÁFICO: EVOLUÇÃO DO SALDO (barras) ================= */
+function renderHistoricoChart() {
+  const card = document.getElementById('evoChartCard');
+  const wrap = document.getElementById('evoChartWrap');
+  const dados = (state.historico || []).slice().reverse(); // cronológico: mais antigo primeiro
+
+  if (dados.length === 0) {
+    card.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+  card.style.display = 'block';
+
+  const barW = 64;
+  const gap = 26;
+  const width = Math.max(dados.length * (barW + gap) + gap, 320);
+  const height = 220;
+  const midY = height / 2;
+  const maxAbs = Math.max(...dados.map(d => Math.abs(d.saldoFinal)), 1);
+  const usableHalf = (height / 2) - 34;
+
+  let bars = '';
+  dados.forEach((d, idx) => {
+    const x = gap + idx * (barW + gap);
+    const val = d.saldoFinal || 0;
+    const barH = (Math.abs(val) / maxAbs) * usableHalf;
+    const isPos = val >= 0;
+    const y = isPos ? midY - barH : midY;
+    const color = isPos ? '#4fb783' : '#d97b6c';
+    const valY = isPos ? y - 8 : y + barH + 16;
+    const labelShort = (d.label || '').length > 10 ? (d.label || '').slice(0, 9) + '…' : (d.label || '');
+
+    bars += `
+      <rect x="${x}" y="${y}" width="${barW}" height="${Math.max(barH, 1.5)}" rx="4" fill="${color}" opacity="0.9">
+        <title>${escapeHtml(d.label)}: ${fmt(val)}</title>
+      </rect>
+      <text x="${x + barW / 2}" y="${valY}" text-anchor="middle" class="evo-bar-val">${fmt(val).replace('R$', '').trim()}</text>
+      <text x="${x + barW / 2}" y="${height - 6}" text-anchor="middle" class="evo-bar-lbl">${escapeHtml(labelShort)}</text>
+    `;
+  });
+
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <line x1="0" y1="${midY}" x2="${width}" y2="${midY}" stroke="rgba(236,232,225,0.16)" stroke-width="1"/>
+      ${bars}
+    </svg>
+  `;
+}
+
+
 function renderHistorico() {
+  renderHistoricoChart();
   const wrap = document.getElementById('listaHistorico');
   wrap.innerHTML = '';
   if (!state.historico || state.historico.length === 0) {
