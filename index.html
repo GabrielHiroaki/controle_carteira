@@ -306,6 +306,15 @@
   }
   .calc-item.plus .ci-val::before{content:"+ ";color:var(--green);}
   .calc-item.base .ci-val::before{content:"";}
+  .extras-title{
+    margin-top:26px;margin-bottom:12px;
+    font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--gold);border-top:1px solid var(--line);padding-top:20px;
+  }
+  .calc-breakdown-2{grid-template-columns:repeat(2,1fr);}
+  @media(max-width:700px){.calc-breakdown-2{grid-template-columns:1fr;}}
+  .calc-item.extra{border-color:rgba(205,163,73,0.25);background:rgba(205,163,73,0.04);}
+  .calc-item.extra .ci-val{color:var(--gold);}
 
   /* progress / gauge */
   .gauge-wrap{display:flex;gap:26px;flex-wrap:wrap;margin-bottom:22px;}
@@ -625,6 +634,9 @@
         </div>
 
         <div class="calc-breakdown" id="cfgBreakdown"></div>
+
+        <div class="extras-title">Estimativas (apenas para consulta — não entram no resumo)</div>
+        <div class="calc-breakdown calc-breakdown-2" id="cfgExtras"></div>
       </div>
     </section>
 
@@ -1044,6 +1056,25 @@ function renderConfigBreakdown(c) {
       <div class="ci-lbl">Bonificação</div>
       <div class="ci-formula">4 × dias trabalhados × valor do passe = 4 × ${Number(c.diasTrabalhados) || 0} × ${fmt(c.valorPasse)}</div>
       <div class="ci-val">${fmt(b.bonificacao)}</div>
+    </div>
+  `;
+
+  // Estimativas de Férias e 13º — usam apenas base + adicional (sem a bonificação do passe)
+  const baseAdicional = b.base + b.adicional;
+  const ferias = baseAdicional + (baseAdicional / 3);
+  const decimoTerceiro = baseAdicional;
+
+  const extras = document.getElementById('cfgExtras');
+  extras.innerHTML = `
+    <div class="calc-item extra">
+      <div class="ci-lbl">Férias (30 dias + 1/3)</div>
+      <div class="ci-formula">(base + adicional) + 1/3 × (base + adicional) = ${fmt(baseAdicional)} + 1/3 × ${fmt(baseAdicional)}</div>
+      <div class="ci-val">${fmt(ferias)}</div>
+    </div>
+    <div class="calc-item extra">
+      <div class="ci-lbl">13º salário</div>
+      <div class="ci-formula">base + adicional = ${fmt(b.base)} + ${fmt(b.adicional)}</div>
+      <div class="ci-val">${fmt(decimoTerceiro)}</div>
     </div>
   `;
 }
